@@ -1,16 +1,10 @@
-import java.util.PriorityQueue;
-//import java.util.Queue;
-import java.util.Stack;
 import java.util.Iterator;
-import java.util.Comparator;
-import java.lang.Thread;
 
 public class Solver {
 
     private int move = 0;
     private MinPQ<BoardPrior> pq = new MinPQ<BoardPrior>();
-    private Stack<BoardPrior> orderpath = new Stack<BoardPrior>();
-    private Stack<BoardPrior> searchtree = new Stack<BoardPrior>();
+    private BoardPrior[] orderpath;
 
     private BoardPrior bp;
     private boolean isSolved = false;
@@ -21,45 +15,78 @@ public class Solver {
                 java.lang.NullPointerException(); }
 
         bp = new BoardPrior(initial, null, move);
-
         BoardPrior searchnode = bp;
         BoardPrior curnbr = null;        
         BoardPrior gradparent = null;
-        
-       
-        pq.insert(searchnode);
 
-        searchtree.push(searchnode);
+        pq.insert(searchnode);       
 
-        while (!searchnode.boardprior.isGoal()) {
+        // solve twin board
+        MinPQ<BoardPrior> twpq = new MinPQ<BoardPrior>();
+        BoardPrior twsearchnode = new BoardPrior(initial.twin(), null, move);
+        BoardPrior twcurnbr = null;        
+        BoardPrior twgradparent = null;
+        int twmove = 0;
+        boolean twinsolved = false;
+        int twselect = 0;
+        twpq.insert(twsearchnode);
+        // end solving twin board
+
+        while (!searchnode.boardprior.isGoal() && !twinsolved) {
 
             searchnode = pq.delMin();
-
+            
+            gradparent = searchnode.parent;
             move = searchnode.mvp;
             move++;
 
             for (Board b : searchnode.boardprior.neighbors()) {
-                
-                if (gradparent == null || !b.equals(gradparent.boardprior)) {               
+                if (gradparent == null
+                     || !b.equals(gradparent.boardprior)) {               
                     curnbr = new BoardPrior(b, searchnode, move);
                     pq.insert(curnbr);
-                    searchtree.push(curnbr);
                 } 
             }
-            gradparent = searchnode;
-        }
-        move--;
-        isSolved = true;
+            
 
-        BoardPrior trace = searchnode;
-        while (searchnode != null) {
-            orderpath.push(searchnode);
-            searchnode = searchnode.parent;
+            if (twselect % 4 == 0) {
+                // solve for the twin board
+                twsearchnode = twpq.delMin();
+                twgradparent = twsearchnode.parent;
+                twmove = twsearchnode.mvp;
+                twmove++;    
+                for (Board b : twsearchnode.boardprior.neighbors()) {
+                    if (twgradparent == null 
+                        || !b.equals(twgradparent.boardprior)) {               
+                        twcurnbr = 
+                            new BoardPrior(b, twsearchnode, twmove);
+                        twpq.insert(twcurnbr);
+                    } 
+                }               
+                twinsolved = twsearchnode.boardprior.isGoal();
+                // end for solving twin board
+            }
+            twselect++;
         }
         
+        if (!twinsolved) {
+            if (move > 0) move--;
+            isSolved = true;
+            
+            orderpath  = new BoardPrior[move+1];
+            BoardPrior trace = searchnode;
+            int count = move;
+            while (trace != null && count >= 0) {
+                orderpath[count] = trace;
+                trace = trace.parent;
+                count--;
+            }
+        } else { 
+            isSolved = false; 
+        }
     }
     
-    private class BoardPrior implements Comparable<BoardPrior>{
+    private class BoardPrior implements Comparable<BoardPrior> {
         private Board boardprior;
         private BoardPrior parent;
         private int prior;
@@ -115,46 +142,12 @@ public class Solver {
     }
 
 
-    public boolean isSolvable() {// is the initial board solvable?
-        final Board initbd = bp.boardprior;
-        final Board twinbd = initbd.twin();
-        boolean slv;
-
-        Thread t1 = new Thread() {
-                public void run() {
-                    Solver initsv = new Solver(initbd);
-                }
-            };
-
-        Thread t2 = new Thread() {
-                public void run() {
-                    Solver twinsv = new Solver(twinbd);
-                }
-            };
-        
-        t1.start();
-        t2.start();
-        
-
-        while(t1.isAlive() && t2.isAlive()) {
-            continue;
-        }
-     
-        if (!t1.isAlive()) {
-            t2.stop();
-            slv = true;
-            isSolved = true;
-        } 
-
-        if (!t2.isAlive()) {
-            t1.stop();
-            slv = false;
-            isSolved = false;
-        }   
-        return slv;
+    public boolean isSolvable() { // is the initial board solvable?
+        return isSolved;
     }
         
-    public int moves() { // min number of moves to solve initial board; -1 if unsolvable
+    // min number of moves to solve initial board; -1 if unsolvable
+    public int moves() { 
         if (!isSolved) {
             return -1;
         } else { return move; }
@@ -162,29 +155,32 @@ public class Solver {
         
     // sequence of boards in a shortest solution; null if unsolvable   
     public Iterable<Board> solution() {
-        return new Iterable<Board>() {
-            public Iterator<Board> iterator() {
-                return new Iterator<Board>() {
-                    
-                    private BoardPrior sn;
-
-                    public boolean hasNext() { 
-                        return orderpath.size() > 0;
-                    }
-                    public Board next() {
-                        sn = (BoardPrior) orderpath.pop();
-                        return sn.boardprior;
-                    }
-                    public void remove() {
-                        throw new 
-                    java.lang.UnsupportedOperationException();
-                    }
-                };
-            }
-        };
+        if (!isSolved) {
+            return null; 
+        } else {
+            return new Iterable<Board>() {
+                public Iterator<Board> iterator() {
+                    return new Iterator<Board>() {
+                        private int count = 0;                      
+                        public boolean hasNext() {
+                            return count <= move;
+                        }
+                        public Board next() {
+                            BoardPrior sn = orderpath[count];
+                            count++;
+                            return sn.boardprior;
+                        }
+                        public void remove() {
+                            throw new 
+                         java.lang.UnsupportedOperationException();
+                        }
+                    };
+                }
+            };
+        }
     }     
-
-    public static void main(String[] args) {// solve a slider puzzle (given below)
+    // solve a slider puzzle (given below)
+    public static void main(String[] args) {
         In in = new In(args[0]);
         int N = in.readInt();
         int[][] blocks = new int[N][N];
@@ -197,16 +193,12 @@ public class Solver {
         Board initial = new Board(blocks);
         Solver solver = new Solver(initial);
 
-        StdOut.println(initial);
-        StdOut.println(initial.twin());
-
         if (!solver.isSolvable())
             StdOut.println("No solution possible");
         else {
-            StdOut.println("Minimum number of moves = " + solver.moves());
+            StdOut.println("Minimum number of moves = " + solver.moves() + "\n");
             for (Board board : solver.solution()) {     
-                StdOut.println(N);
-                StdOut.println(board);
+                StdOut.println(board.toString());
                 StdOut.println();
             }
         }
