@@ -262,40 +262,5 @@ public class KdTree {
 
     // unit testing of the methods (optional)
     public static void main(String[] args) {
-        KdTree kt = new KdTree();
-        Point2D pt = new Point2D(0.1, 0.5);
-  
-        StdOut.println("size: "+ kt.size());
-        kt.insert(pt);
-
-        StdOut.println("size: "+ kt.size());
-        StdOut.println("contain: "+ kt.contains(pt));
-
-        pt = new Point2D(0.5, 0.2);
-        StdOut.println("contain: "+ kt.contains(pt));
-        kt.insert(pt);
-        //kt.draw();
-        StdOut.println("size: "+ kt.size());
-        StdOut.println("isEmpty:" + kt.isEmpty());
-
-        StdOut.println("contain: "+ kt.contains(pt));
-
-        pt = new Point2D(0.3, 0.7);
-        kt.insert(pt);
-        pt = new Point2D(0.9, 0.6);
-        kt.insert(pt);
-        pt = new Point2D(0.3, 0.4);
-        kt.insert(pt);
-        //kt.draw();
-
-        RectHV re = new RectHV(0.2, 0.1, 0.8, 0.7);
-        StdOut.println(re);
-         for (Point2D p : kt.range(re)) {     
-             StdOut.println(p);
-         }
-        
-         StdOut.println("near: " + kt.nearest(pt));
-
-
     }
 }
