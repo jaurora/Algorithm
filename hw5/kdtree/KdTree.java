@@ -232,25 +232,28 @@ public class KdTree {
 
     private Point2D nearsearch(Point2D p, Node n, Point2D tmp) {
         Point2D close = tmp;
+            
+        if (n.p.distanceTo(p) < close.distanceTo(p)) {
+            close = n.p;
+        }
 
-        if (n != null) {            
-            if (n.p.distanceTo(p) < close.distanceTo(p)) {
-                close = n.p;
-            }
-
-            if (n.rect.distanceTo(p) <= close.distanceTo(p)) {
-                if (n.vertical) {
-                    if (p.y() < n.p.y()) { 
-                        close = nearsearch(p, n.lb, close);                       
-                    } else {
-                        close = nearsearch(p, n.rt, close);
-                    }
+        if (n.rect.distanceTo(p) < close.distanceTo(p)) {
+            
+            if (n.vertical) {
+                if (p.y() < n.p.y()) {
+                    if (n.lb != null) { close = nearsearch(p, n.lb, close); }
+                    if (n.rt != null) { close = nearsearch(p, n.rt, close); }
                 } else {
-                    if (p.x() < n.p.x()) { 
-                        close = nearsearch(p, n.lb, close);
-                    } else {
-                        close = nearsearch(p, n.rt, close);
-                    }
+                    if (n.rt != null) { close = nearsearch(p, n.rt, close); }
+                    if (n.lb != null) { close = nearsearch(p, n.lb, close); }
+                }
+            } else {
+                if (p.x() < n.p.x()) {
+                    if (n.lb != null) { close = nearsearch(p, n.lb, close); }
+                    if (n.rt != null) { close = nearsearch(p, n.rt, close); }
+                } else {
+                    if (n.rt != null) { close = nearsearch(p, n.rt, close); }
+                    if (n.lb != null) { close = nearsearch(p, n.lb, close); }
                 }
             }
         }
